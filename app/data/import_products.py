@@ -75,7 +75,7 @@ def parse_variants(product_element) -> List[ProductVariant]:
             description=node.get("Desc"),
             identifiers=parse_variant_ids(node)
         )
-        for node in product_element.Variants.Variant
+        for node in product_element.findall("Variants/Variant")
     ]
 
 
@@ -152,17 +152,17 @@ def main(
             skipped = repo.product_exists(product_id)
             
             if not skipped:
-            product = extract_product_info(element)
+                product = extract_product_info(element)
         elif event == "start" and element.tag == "Country_Market":
             if not skipped:
-            market = element.get("Value")
-            product.country_markets.append(market)
+                market = element.get("Value")
+                product.country_markets.append(market)
         elif event == "end" and element.tag == "file":
             if not skipped:
-            file_name = f"{product.id}.xml"
-            product_file_path = Path(file_path).parent / file_name
-            parse_product_info(product_file_path, product)
-            repo.create_product(product)
+                file_name = f"{product.id}.xml"
+                product_file_path = Path(file_path).parent / file_name
+                parse_product_info(product_file_path, product)
+                repo.create_product(product)
                 # print(f"Product {product.id} created successfully!")
                 # break
 
