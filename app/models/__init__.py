@@ -64,6 +64,7 @@ class Product:
     end_of_life_on: Optional[datetime] = field(default=None)
     title: str = field(default='')
     category_name: str = field(default='')
+    supplier_name: str = field(default='')
     description_short: str = field(default='')
     description_middle: str = field(default='')
     description_long: str = field(default='')

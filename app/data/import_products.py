@@ -70,6 +70,7 @@ def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     product.end_of_life_on = datetime.strptime(product_node.EndOfLifeDate.Date.get("Value"), "%Y-%m-%d")
     product.title = product_node.get("Title")
     product.category_name = product_node.Category.Name.get("Value")
+    product.supplier_name = product_node.Supplier.get("Name")
 
     product.description_short = product_node.ProductDescription.get("ShortDesc")
     product.description_middle = product_node.ProductDescription.get("MiddleDesc")
