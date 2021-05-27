@@ -36,6 +36,20 @@ class ProductEAN:
 
 
 @dataclass
+class ProductFeature:
+    id: str
+    category_id: str
+    group_id: str
+    measure_id: str
+    name: str
+    value: str
+    presentation_value: str
+    is_translated: bool
+    is_mandatory: bool
+    is_searchable: bool
+
+
+@dataclass
 class Product:
     id: int
     supplier_id: int
@@ -58,11 +72,10 @@ class Product:
     url_manual: str = field(default='')
     url_pdf: str = field(default='')
 
-    attribute_ids: List[str] = field(default_factory=list)
-    attribute_values: List[MultiValue] = field(default_factory=list)
     images: List[ProductImage] = field(default_factory=list)
     country_markets: List[str] = field(default_factory=list)
     ean: List[ProductEAN] = field(default_factory=list)
+    features: List[ProductFeature] = field(default_factory=list)
 
 
 class Repository:

@@ -30,6 +30,24 @@ def parse_ean(product_element) -> List[ProductEAN]:
     ]
 
 
+def parse_features(product_element) -> List[ProductFeature]:
+    return [
+        ProductFeature(
+            id=node.Feature.get("ID"),
+            category_id=node.get("CategoryFeature_ID"),
+            group_id=node.get("CategoryFeatureGroup_ID"),
+            measure_id=node.LocalValue.Measure.get("ID"),
+            name=node.Feature.Name.get("Value"),
+            value=node.LocalValue.get("Value"),
+            presentation_value=node.get("Presentation_Value"),
+            is_translated=node.get("Translated") == "1",
+            is_mandatory=node.get("Mandatory") == "1",
+            is_searchable=node.get("Searchable") == "1",
+        )
+        for node in product_element.ProductFeature
+    ]
+
+
 def extract_image_info(xml_element, type: str) -> ProductImage:
     return ProductImage(
         type=type.lower(),
@@ -61,6 +79,7 @@ def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     product.url_pdf = product_node.ProductDescription.get("PDFURL")
 
     product.ean = parse_ean(product_node)
+    product.features = parse_features(product_node)
 
 
 def extract_product_info(xml_file_element) -> Product:
