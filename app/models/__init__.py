@@ -68,6 +68,8 @@ class Product:
     description_short: str = field(default='')
     description_middle: str = field(default='')
     description_long: str = field(default='')
+    summary_short: str = field(default='')
+    summary_long: str = field(default='')
     warranty: str = field(default='')
     url_details: str = field(default='')
     url_manual: str = field(default='')

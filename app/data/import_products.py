@@ -76,6 +76,9 @@ def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     product.description_middle = product_node.ProductDescription.get("MiddleDesc")
     product.description_long = product_node.ProductDescription.get("LongDesc")
 
+    product.summary_short = product_node.SummaryDescription.ShortSummaryDescription.text
+    product.summary_long = product_node.SummaryDescription.LongSummaryDescription.text
+
     product.warranty = product_node.ProductDescription.get("WarrantyInfo")
     product.url_details = product_node.ProductDescription.get("URL")
     product.url_manual = product_node.ProductDescription.get("ManualPDFURL")
