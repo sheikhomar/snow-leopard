@@ -145,20 +145,26 @@ def main(
 ):
     repo = Repository(db_auth_path=db_auth_path)
     product: Product = None
+    skipped: bool = False
     for event, element in etree.iterparse(file_path, events=("start", "end"), tag=("file", "Country_Market")):
         if event == "start" and element.tag == "file":
             product_id = element.get("Product_ID")
-            if repo.product_exists(product_id):
-                continue
+            skipped = repo.product_exists(product_id)
+            
+            if not skipped:
             product = extract_product_info(element)
         elif event == "start" and element.tag == "Country_Market":
+            if not skipped:
             market = element.get("Value")
             product.country_markets.append(market)
         elif event == "end" and element.tag == "file":
+            if not skipped:
             file_name = f"{product.id}.xml"
             product_file_path = Path(file_path).parent / file_name
             parse_product_info(product_file_path, product)
             repo.create_product(product)
+                # print(f"Product {product.id} created successfully!")
+                # break
 
 
 if __name__ == "__main__":
