@@ -50,6 +50,19 @@ class ProductFeature:
 
 
 @dataclass
+class ProductVariantId:
+    type: str
+    value: str
+
+
+@dataclass
+class ProductVariant:
+    id: str
+    description: str
+    identifiers: List[ProductVariantId] = field(default_factory=list)
+
+
+@dataclass
 class Product:
     id: int
     supplier_id: int
@@ -79,6 +92,7 @@ class Product:
     country_markets: List[str] = field(default_factory=list)
     ean: List[ProductEAN] = field(default_factory=list)
     features: List[ProductFeature] = field(default_factory=list)
+    variants: List[ProductVariant] = field(default_factory=list)
 
 
 class Repository:

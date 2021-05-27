@@ -61,6 +61,24 @@ def parse_images(product_element) -> List[ProductImage]:
     ]
 
 
+def parse_variant_ids(variant_element) -> List[ProductVariantId]:
+    return [
+        ProductVariantId(type=node.get("Type"), value=node.get("Value"))
+        for node in variant_element.VariantIdentifiers.Identifier
+    ]
+
+
+def parse_variants(product_element) -> List[ProductVariant]:
+    return [
+        ProductVariant(
+            id=node.get("ID"),
+            description=node.get("Desc"),
+            identifiers=parse_variant_ids(node)
+        )
+        for node in product_element.Variants.Variant
+    ]
+
+
 def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     print(f"Extracting product info from {file_path}")
     parse_xml = objectify.parse(str(file_path))
@@ -87,6 +105,7 @@ def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     product.ean = parse_ean(product_node)
     product.features = parse_features(product_node)
     product.images = parse_images(product_node)
+    product.variants = parse_variants(product_node)
 
 
 def extract_product_info(xml_file_element) -> Product:
