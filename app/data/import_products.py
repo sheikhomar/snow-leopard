@@ -1,11 +1,13 @@
-
-from dataclasses import dataclass, field
+from typing import List
 from datetime import datetime
-from typing import List, Optional
+from pathlib import Path
 
 import click
 from lxml import etree
 from app.models import *
+
+def parse_product_info(file_path: Path) -> List[MultiValue]:
+    pass
 
 
 def extract_product_info(xml_file_element) -> Product:
@@ -49,6 +51,10 @@ def main(
     repo = Repository(db_auth_path=db_auth_path)
     for event, element in etree.iterparse(file_path, events=("start", "end"), tag="file"):
         if event == "start":
+            product_file_name = Path(element.get("path")).name
+            product_file_path = Path(file_path).parent / product_file_name
+            vals = parse_product_info(product_file_path)
+
             product_id = element.get("Product_ID")
             if repo.product_exists(product_id):
                 continue

@@ -9,6 +9,18 @@ from pyArango.connection import Connection
 
 
 @dataclass
+class AttributeValue:
+    type_name: str
+    value: object
+
+
+@dataclass
+class MultiValue:
+    attribute_id: str
+    values: List[AttributeValue] = field(default_factory=list)
+
+
+@dataclass
 class Product:
     id: int
     supplier_id: int
@@ -22,6 +34,8 @@ class Product:
     image_height: int
     quality: str
     model_name: str
+    attribute_ids: List[str] = field(default_factory=list)
+    attribute_values: List[MultiValue] = field(default_factory=list)
 
 
 class Repository:
