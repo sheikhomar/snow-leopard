@@ -48,22 +48,24 @@ def parse_features(product_element) -> List[ProductFeature]:
     ]
 
 
-def extract_image_info(xml_element, type: str) -> ProductImage:
-    return ProductImage(
-        type=type.lower(),
-        url=xml_element.get(f"{type}Pic"),
-        width=int(xml_element.get(f"{type}PicWidth")),
-        height=int(xml_element.get(f"{type}PicHeight")),
-        size_bytes=int(xml_element.get(f"{type}PicSize"))
-    )
+def parse_images(product_element) -> List[ProductImage]:
+    return [
+        ProductImage(
+            type=node.get("Type"),
+            is_main=node.get("IsMain") == "Y",
+            url=node.get("Original"),
+            size_bytes=int(node.get("OriginalSize")),
+            updated_at=datetime.strptime(node.get("UpdatedDate"), "%Y-%m-%d %H:%M:%S"),
+        )
+        for node in product_element.ProductGallery.ProductPicture
+    ]
 
 
 def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     print(f"Extracting product info from {file_path}")
     parse_xml = objectify.parse(str(file_path))
     product_node = parse_xml.getroot().Product
-    product.images.append(extract_image_info(product_node, "High"))
-    product.images.append(extract_image_info(product_node, "Low"))
+    
     product.released_on = datetime.strptime(product_node.get("ReleaseDate"), "%Y-%m-%d")
     product.end_of_life_on = datetime.strptime(product_node.EndOfLifeDate.Date.get("Value"), "%Y-%m-%d")
     product.title = product_node.get("Title")
@@ -80,6 +82,7 @@ def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
 
     product.ean = parse_ean(product_node)
     product.features = parse_features(product_node)
+    product.images = parse_images(product_node)
 
 
 def extract_product_info(xml_file_element) -> Product:

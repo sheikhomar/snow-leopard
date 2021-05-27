@@ -23,10 +23,10 @@ class MultiValue:
 @dataclass
 class ProductImage:
     type: str
+    is_main: bool
     url: str
-    width: int
-    height: int
     size_bytes: int
+    updated_at: datetime
 
 
 @dataclass
