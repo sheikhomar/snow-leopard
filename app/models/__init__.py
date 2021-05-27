@@ -21,6 +21,21 @@ class MultiValue:
 
 
 @dataclass
+class ProductImage:
+    type: str
+    url: str
+    width: int
+    height: int
+    size_bytes: int
+
+
+@dataclass
+class ProductEAN:
+    variant_id: str
+    ean: str
+
+
+@dataclass
 class Product:
     id: int
     supplier_id: int
@@ -29,13 +44,25 @@ class Product:
     updated_at: datetime
     is_limited: bool
     on_market: bool
-    image_url: str
-    image_width: int
-    image_height: int
     quality: str
     model_name: str
+    released_on: Optional[datetime] = field(default=None)
+    end_of_life_on: Optional[datetime] = field(default=None)
+    title: str = field(default='')
+    category_name: str = field(default='')
+    description_short: str = field(default='')
+    description_middle: str = field(default='')
+    description_long: str = field(default='')
+    warranty: str = field(default='')
+    url_details: str = field(default='')
+    url_manual: str = field(default='')
+    url_pdf: str = field(default='')
+
     attribute_ids: List[str] = field(default_factory=list)
     attribute_values: List[MultiValue] = field(default_factory=list)
+    images: List[ProductImage] = field(default_factory=list)
+    country_markets: List[str] = field(default_factory=list)
+    ean: List[ProductEAN] = field(default_factory=list)
 
 
 class Repository:
