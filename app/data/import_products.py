@@ -26,7 +26,7 @@ def import_products(db_auth_path: str, import_path: str) -> None:
 def parse_ean(product_element) -> List[ProductEAN]:
     return [
         ProductEAN(variant_id=node.get("VariantID"), ean=node.get("EAN"))
-        for node in product_element.EANCode
+        for node in product_element.findall("EANCode")
     ]
 
 
@@ -44,7 +44,7 @@ def parse_features(product_element) -> List[ProductFeature]:
             is_mandatory=node.get("Mandatory") == "1",
             is_searchable=node.get("Searchable") == "1",
         )
-        for node in product_element.ProductFeature
+        for node in product_element.findall("ProductFeature")
     ]
 
 
@@ -55,16 +55,16 @@ def parse_images(product_element) -> List[ProductImage]:
             is_main=node.get("IsMain") == "Y",
             url=node.get("Original"),
             size_bytes=int(node.get("OriginalSize")),
-            updated_at=datetime.strptime(node.get("UpdatedDate"), "%Y-%m-%d %H:%M:%S"),
+            updated_at=to_datetime(node, ".", "UpdatedDate", "%Y-%m-%d %H:%M:%S"),
         )
-        for node in product_element.ProductGallery.ProductPicture
+        for node in product_element.findall("ProductGallery/ProductPicture")
     ]
 
 
 def parse_variant_ids(variant_element) -> List[ProductVariantId]:
     return [
         ProductVariantId(type=node.get("Type"), value=node.get("Value"))
-        for node in variant_element.VariantIdentifiers.Identifier
+        for node in variant_element.findall("VariantIdentifiers/Identifier")
     ]
 
 
@@ -83,8 +83,8 @@ def to_datetime(xml_element, xpath: str, attr_name: str, format: str) -> Optiona
     node = xml_element.find(xpath)
     if node is None:
         return None
-    val = xml_element.find(xpath).get(attr_name)
-    if val is not None or len(val) > 0:
+    val = node.get(attr_name)
+    if val is not None and len(val) > 0:
         return datetime.strptime(val, format)
     return None
 
@@ -93,8 +93,17 @@ def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     print(f"Extracting product info from {file_path}")
     parse_xml = objectify.parse(str(file_path))
     product_node = parse_xml.getroot().Product
-    
-    product.released_on = datetime.strptime(product_node.get("ReleaseDate"), "%Y-%m-%d")
+
+    if product_node is None:
+        print(f' > Skipped due to wrong formatting.')
+        return
+
+    err_msg = product_node.get("ErrorMessage")
+    if err_msg is not None:
+        print(f' > Skipped due error message: "{err_msg}".')
+        return
+
+    product.released_on = to_datetime(product_node, ".", "ReleaseDate", "%Y-%m-%d")
     product.end_of_life_on = to_datetime(product_node, "EndOfLifeDate/Date", "Value", "%Y-%m-%d")
     
     product.title = product_node.get("Title")
@@ -174,8 +183,7 @@ def main(
                 product_file_path = Path(file_path).parent / file_name
                 parse_product_info(product_file_path, product)
                 repo.create_product(product)
-                # print(f"Product {product.id} created successfully!")
-                # break
+                print(f"Product {product.id} created successfully!")
 
 
 if __name__ == "__main__":
