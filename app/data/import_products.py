@@ -79,13 +79,24 @@ def parse_variants(product_element) -> List[ProductVariant]:
     ]
 
 
+def to_datetime(xml_element, xpath: str, attr_name: str, format: str) -> Optional[datetime]:
+    node = xml_element.find(xpath)
+    if node is None:
+        return None
+    val = xml_element.find(xpath).get(attr_name)
+    if val is not None or len(val) > 0:
+        return datetime.strptime(val, format)
+    return None
+
+
 def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     print(f"Extracting product info from {file_path}")
     parse_xml = objectify.parse(str(file_path))
     product_node = parse_xml.getroot().Product
     
     product.released_on = datetime.strptime(product_node.get("ReleaseDate"), "%Y-%m-%d")
-    product.end_of_life_on = datetime.strptime(product_node.EndOfLifeDate.Date.get("Value"), "%Y-%m-%d")
+    product.end_of_life_on = to_datetime(product_node, "EndOfLifeDate/Date", "Value", "%Y-%m-%d")
+    
     product.title = product_node.get("Title")
     product.category_name = product_node.Category.Name.get("Value")
     product.supplier_name = product_node.Supplier.get("Name")
