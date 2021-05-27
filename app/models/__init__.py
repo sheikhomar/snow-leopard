@@ -31,7 +31,7 @@ class ProductImage:
 
 @dataclass
 class ProductEAN:
-    variant_id: str
+    variant_id: Optional[str]
     ean: str
 
 

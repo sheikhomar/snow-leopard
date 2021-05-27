@@ -21,7 +21,13 @@ def import_products(db_auth_path: str, import_path: str) -> None:
             parse_product_info(fp)
     else:
         parse_product_info(import_dir_path)
-    
+
+
+def parse_ean(product_element) -> List[ProductEAN]:
+    return [
+        ProductEAN(variant_id=node.get("VariantID"), ean=node.get("EAN"))
+        for node in product_element.EANCode
+    ]
 
 
 def extract_image_info(xml_element, type: str) -> ProductImage:
@@ -53,6 +59,8 @@ def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
     product.url_details = product_node.ProductDescription.get("URL")
     product.url_manual = product_node.ProductDescription.get("ManualPDFURL")
     product.url_pdf = product_node.ProductDescription.get("PDFURL")
+
+    product.ean = parse_ean(product_node)
 
 
 def extract_product_info(xml_file_element) -> Product:
