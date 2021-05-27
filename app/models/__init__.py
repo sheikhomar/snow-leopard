@@ -5,6 +5,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from pyArango.collection import Collection
 from pyArango.connection import Connection
 
 
@@ -108,8 +109,8 @@ class Repository:
             self._db = conn[db_name]
         else:
             self._db = conn.createDatabase(db_name)
-        self._conn = conn
-        self._products = None
+        self._conn: Connection = conn
+        self._products: Collection = None
 
     @property
     def products(self):
