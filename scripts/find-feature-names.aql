@@ -1,0 +1,4 @@
+FOR p IN products
+  FOR f IN p.features
+  COLLECT name = f.name  
+  RETURN { name } 
