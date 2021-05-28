@@ -13,6 +13,8 @@ jupyterlab = "^3.0.16"
 pandas = "^1.2.4"
 pandas-profiling = "^3.0.0"
 ipywidgets = "^7.6.3"
+seaborn = "^0.11.1"
+openpyxl = "^3.0.7"
 
 [tool.poetry.dev-dependencies]
 
