@@ -130,4 +130,5 @@ class Repository:
     def product_exists(self, product_id: str) -> bool:
         return (product_id in self.products)
 
-
+    def get_all_products(self) -> List[Product]:
+        return list(self.products.fetchAll(rawResults=True))
