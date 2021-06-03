@@ -7,20 +7,14 @@ from lxml import etree, objectify
 from app.models import *
 
 
-def import_products(db_auth_path: str, import_path: str) -> None:
-    
-    import_dir_path = Path(import_path)
-    if not import_dir_path.exists():
-        print(f"Path {import_path} does not exist!")
-        return
-
-    repo = Repository(db_auth_path=db_auth_path)
-    if import_dir_path.is_dir():
-        file_paths = import_dir_path.glob("*.xml")
-        for fp in file_paths:
-            parse_product_info(fp)
-    else:
-        parse_product_info(import_dir_path)
+def to_datetime(xml_element, xpath: str, attr_name: str, format: str) -> Optional[datetime]:
+    node = xml_element.find(xpath)
+    if node is None:
+        return None
+    val = node.get(attr_name)
+    if val is not None and len(val) > 0:
+        return datetime.strptime(val, format)
+    return None
 
 
 def parse_ean(product_element) -> List[ProductEAN]:
@@ -77,16 +71,6 @@ def parse_variants(product_element) -> List[ProductVariant]:
         )
         for node in product_element.findall("Variants/Variant")
     ]
-
-
-def to_datetime(xml_element, xpath: str, attr_name: str, format: str) -> Optional[datetime]:
-    node = xml_element.find(xpath)
-    if node is None:
-        return None
-    val = node.get(attr_name)
-    if val is not None and len(val) > 0:
-        return datetime.strptime(val, format)
-    return None
 
 
 def parse_product_info(file_path: Path, product: Product) -> List[MultiValue]:
@@ -183,7 +167,7 @@ def main(
                 product_file_path = Path(file_path).parent / file_name
                 parse_product_info(product_file_path, product)
                 repo.create_product(product)
-                print(f"Product {product.id} created successfully!")
+                print(f" > Product {product.id} created successfully!")
 
 
 if __name__ == "__main__":
