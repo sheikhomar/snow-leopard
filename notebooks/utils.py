@@ -339,10 +339,11 @@ def prepare_for_preprocessing(dataframe: pd.DataFrame) -> Tuple[pd.DataFrame, Di
     product_feature_columns = get_product_feature_columns_for_training(df)
 
     feature_type_map = {
+        'binary': [],
         'category': [],
         'multi-category': [],
         'int32': [],
-        'float': []
+        'float': [],
     }
     
     for feat in set(product_feature_columns):
@@ -368,7 +369,7 @@ def prepare_for_preprocessing(dataframe: pd.DataFrame) -> Tuple[pd.DataFrame, Di
                 df[feat_invalid] = df[feat_invalid].astype(int)
 
                 # Ensure that the newly created feature is used.
-                feature_type_map['int32'].append(feat_invalid)
+                feature_type_map['binary'].append(feat_invalid)
 
                 # Mark invalid if the product feature is not valid for the
                 # categories and value is NULL.
@@ -383,7 +384,7 @@ def prepare_for_preprocessing(dataframe: pd.DataFrame) -> Tuple[pd.DataFrame, Di
                 df[feat_na] = df[feat_na].astype(int)
 
                 # Ensure that the newly created feature is used downstream.
-                feature_type_map['int32'].append(feat_na)
+                feature_type_map['binary'].append(feat_na)
 
                 # Mark valid but unassigned values.
                 df.loc[df[feat].isnull(), feat_na] = 1
