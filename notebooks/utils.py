@@ -1,3 +1,4 @@
+from itertools import chain
 from typing import List
 
 import matplotlib.pyplot as plt
@@ -53,6 +54,12 @@ def get_unique_value_lengths(dataframe: pd.DataFrame, col_name: str):
     return np.array(unique_vals)
 
 
+def split_and_flatten(arr: list) -> List[str]:
+    arr_splitted = [str(v).split(',') for v in arr]
+    arr_flattened = [v.strip() for v in chain.from_iterable(arr_splitted)]
+    return arr_flattened
+
+
 def inferred_type(dataframe: pd.DataFrame, col_name: str, max_cat_value_count: int=1000) -> np.dtype:
     is_datetime_col = dataframe[col_name].str.match('(\d{2,4}(-|\/|\\|\.| )\d{2}(-|\/|\\|\.| )\d{2,4})+').all()
     if is_datetime_col:
@@ -80,6 +87,14 @@ def inferred_type(dataframe: pd.DataFrame, col_name: str, max_cat_value_count: i
         if np.max(unique_val_lengths) > 300:
             # print(f'{col_name} -> {np.max(unique_val_lengths)}')
             return 'object'
+
+        # Detect multi-label categories
+        unique_vals_with_seperator = [v for v in unique_vals if ',' in v]
+        unique_vals_no_sep = list(set(unique_vals) - set(unique_vals_with_seperator))
+        unique_vals_multi = list(set(split_and_flatten(unique_vals_with_seperator)))
+        if len(set(unique_vals_no_sep).intersection(set(unique_vals_multi))) > 1:
+            return 'multi-category'
+
         return 'category'
 
     return 'object'
