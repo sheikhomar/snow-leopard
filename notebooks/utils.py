@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import List
+from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,11 +7,12 @@ import pandas as pd
 
 
 FIXED_COLUMN_NAMES = [
-    'id', 'supplier_id', 'supplier_name', 'category_id', 'category_name', 'title',
+    'id', 'supplier_id', 'category_id', 'category_name', 'title',
     'model_name', 'description_short', 'description_middle', 'description_long',
     'summary_short', 'summary_long', 'warranty', 'is_limited', 'on_market', 'quality',
     'url_details', 'url_manual', 'url_pdf', 'created_at', 'updated_at', 'released_on',
-    'end_of_life_on', 'ean', 'n_variants', 'countries'
+    'end_of_life_on', 'ean', 'n_variants', 'countries',
+    # 'supplier_name',
 ]
 
 
@@ -271,3 +272,52 @@ def get_fill_ratios_for_product_features_per_category(dataframe: pd.DataFrame):
         category_feature_map[category] = {k:v for k, v in zip(category_feature_names, fill_ratios)}
 
     return category_feature_map
+
+
+def get_valid_categories_per_product_feature(fill_ratio: Dict[str, Dict[str, float]]):
+    valid_cats_per_feat = dict()
+    for category, feats_map in fill_ratio.items():
+        for feat in feats_map.keys():
+            if not feat in valid_cats_per_feat:
+                valid_cats_per_feat[feat] = []
+            valid_cats_per_feat[feat].append(category)
+    return valid_cats_per_feat
+
+
+def prepare_for_preprocessing(dataframe: pd.DataFrame) -> pd.DataFrame:
+    df = dataframe.copy()
+    fill_ratios = get_fill_ratios_for_product_features_per_category(df)
+    valid_cats_per_feat = get_valid_categories_per_product_feature(fill_ratios)
+    product_feature_columns = get_product_feature_columns_for_training(df)
+    
+    for feat in set(product_feature_columns):
+        valid_product_categories = valid_cats_per_feat[feat]
+        dtype = inferred_type(df, feat)
+        filter_cat_not_valid = ~df.category_name.isin(valid_product_categories)
+        
+        if dtype in ['category', 'multi-category']:
+            # Distinguish between values for which the feature is invalid or N/A.
+            # Mark the categories for which the given product feature is not valid for as Invalid.
+            # If the category is valid, mark NULL values as Not Available. 
+            df.loc[filter_cat_not_valid & df[feat].isnull(), feat] = '(Invalid)'
+            df.loc[df[feat].isnull(), feat] = '(N/A)'
+            df[feat] = df[feat].astype('category')
+        
+        elif dtype in ['float', 'int32']:
+            if (filter_cat_not_valid & df[feat].isnull()).sum() > 0:
+                feat_invalid = feat + ' Invalid'
+                df[feat_invalid] = 0
+                df[feat_invalid] = df[feat_invalid].astype(int)
+                df.loc[filter_cat_not_valid & df[feat].isnull(), feat_invalid] = 1
+                
+            if df[feat].isnull().sum() > 0:
+                feat_na = feat + ' Not Available'
+                df[feat_na] = 0
+                df[feat_na] = df[feat_na].astype(int)
+                df.loc[df[feat].isnull(), feat_na] = 1
+                
+            df[feat].fillna(0.0, inplace=True)
+            df[feat] = df[feat].astype(dtype)
+                
+    sorted_cols = list(sorted(df.columns.tolist()))
+    return df[sorted_cols]
