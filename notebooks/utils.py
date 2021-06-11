@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -332,11 +332,18 @@ def get_valid_categories_per_product_feature(fill_ratio: Dict[str, Dict[str, flo
     return valid_cats_per_feat
 
 
-def prepare_for_preprocessing(dataframe: pd.DataFrame) -> pd.DataFrame:
+def prepare_for_preprocessing(dataframe: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, List[str]]]:
     df = dataframe.copy()
     fill_ratios = get_fill_ratios_for_product_features_per_category(df)
     valid_cats_per_feat = get_valid_categories_per_product_feature(fill_ratios)
     product_feature_columns = get_product_feature_columns_for_training(df)
+
+    feature_type_map = {
+        'category': [],
+        'multi-category': [],
+        'int32': [],
+        'float': []
+    }
     
     for feat in set(product_feature_columns):
         valid_product_categories = valid_cats_per_feat[feat]
@@ -349,23 +356,41 @@ def prepare_for_preprocessing(dataframe: pd.DataFrame) -> pd.DataFrame:
             # If the category is valid, mark NULL values as Not Available. 
             df.loc[filter_cat_not_valid & df[feat].isnull(), feat] = '(Invalid)'
             df.loc[df[feat].isnull(), feat] = '(N/A)'
-            df[feat] = df[feat].astype('category')
+            df[feat] = df[feat].astype('category' if dtype == 'category' else 'str') 
+            feature_type_map[dtype].append(feat)
         
         elif dtype in ['float', 'int32']:
             if (filter_cat_not_valid & df[feat].isnull()).sum() > 0:
-                feat_invalid = feat + ' Invalid'
-                df[feat_invalid] = 0
+                # Create a new binary feature that tracks that the current numerical
+                # product feature is invalid for certain product categories.
+                feat_invalid = feat + ' Invalid'  # Name of the new feature 
+                df[feat_invalid] = 0  # Default value is False
                 df[feat_invalid] = df[feat_invalid].astype(int)
+
+                # Ensure that the newly created feature is used.
+                feature_type_map['int32'].append(feat_invalid)
+
+                # Mark invalid if the product feature is not valid for the
+                # categories and value is NULL.
                 df.loc[filter_cat_not_valid & df[feat].isnull(), feat_invalid] = 1
-                
+
             if df[feat].isnull().sum() > 0:
-                feat_na = feat + ' Not Available'
-                df[feat_na] = 0
+                # Create a binary feature that tracks when the current numerical
+                # feature is valid for certain product categories but value is
+                # not available for a given product.
+                feat_na = feat + ' Not Available'  # Name of the new feature 
+                df[feat_na] = 0  # Default Value
                 df[feat_na] = df[feat_na].astype(int)
+
+                # Ensure that the newly created feature is used downstream.
+                feature_type_map['int32'].append(feat_na)
+
+                # Mark valid but unassigned values.
                 df.loc[df[feat].isnull(), feat_na] = 1
-                
+
             df[feat].fillna(0.0, inplace=True)
             df[feat] = df[feat].astype(dtype)
+            feature_type_map[dtype].append(feat)
                 
     sorted_cols = list(sorted(df.columns.tolist()))
-    return df[sorted_cols]
+    return df[sorted_cols], feature_type_map
