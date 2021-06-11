@@ -89,7 +89,7 @@ def inferred_type(dataframe: pd.DataFrame, col_name: str, max_cat_value_count: i
             return 'object'
 
         # Detect multi-label categories
-        unique_vals_with_seperator = [v for v in unique_vals if ',' in v]
+        unique_vals_with_seperator = [str(v) for v in unique_vals if ',' in str(v)]
         unique_vals_no_sep = list(set(unique_vals) - set(unique_vals_with_seperator))
         unique_vals_multi = list(set(split_and_flatten(unique_vals_with_seperator)))
         if len(set(unique_vals_no_sep).intersection(set(unique_vals_multi))) > 1:
