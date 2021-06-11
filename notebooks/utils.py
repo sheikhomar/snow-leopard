@@ -96,9 +96,9 @@ def filter_rows(dataframe: pd.DataFrame, min_count_per_category: int=50):
     return dataframe[dataframe.category_name.isin(categories)]
 
 
-def filter_columns(dataframe: pd.DataFrame, min_count_per_feature:int=10):
+def get_product_feature_columns_for_training(dataframe: pd.DataFrame, min_count_per_feature:int=10):
     # Get columns that specify features of the products
-    product_feature_columns = get_feature_columns(dataframe)
+    product_feature_columns = get_feature_columns(dataframe, remove_id_like_columns=True)
 
     # Find columns that have too few specified values
     n_rows = dataframe.shape[0]
@@ -117,7 +117,7 @@ def filter_columns(dataframe: pd.DataFrame, min_count_per_feature:int=10):
                 if fill_unique_ratio < 2.0:
                     excluded_cols.append(col)
     
-    # Manually exclude certains columns if they were not caught by the
+    # Manually exclude columns if they were not caught by the
     # heuristic above.
     excluded_cols += [
         'Customs product code (TARIC)',
@@ -140,9 +140,8 @@ def filter_columns(dataframe: pd.DataFrame, min_count_per_feature:int=10):
         for col in product_feature_columns
         if col not in excluded_cols
     ]
-    
-    # Create a copy
-    return dataframe[['supplier_name'] + product_features_to_use].copy()
+
+    return ['supplier_name'] + product_features_to_use
 
 
 def detect_and_fix_column_types(dataframe: pd.DataFrame):
