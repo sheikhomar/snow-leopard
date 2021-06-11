@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from sklearn.preprocessing import OneHotEncoder, MultiLabelBinarizer
+
 
 FIXED_COLUMN_NAMES = [
     'id', 'supplier_id', 'category_id', 'category_name', 'title',
@@ -37,6 +39,52 @@ ICE_CAT_ID_LIKE_COLUMN_NAMES = [
     'Pole dimensions (W x D x H)',
     'Slot size (LxWxH)',
 ]
+
+
+class MultiHotEncoder(OneHotEncoder):
+    def __init__(self, handle_unknown='ignore'):
+        super().__init__(
+            drop=None,
+            sparse=False,
+            dtype=np.float64,
+            handle_unknown=handle_unknown
+        )
+        self.classes = []
+
+    def fit(self, X, y=None):
+        X_list, n_samples, n_features = self._check_X(X)
+        self.classes = []
+        for i in range(n_features):
+            Xi = X_list[i]
+            
+            # Assume that each cell value type is a list -- containing one or more values
+            cats = np.unique(list(chain.from_iterable(Xi)))
+            
+            self.classes.append(cats)
+        return self
+    
+    def transform(self, X, y=None):
+        X_list, n_samples, n_features = self._check_X(X)
+        
+        if n_features != len(self.classes):
+            raise ValueError(
+                "The number of features in X is different to the number of "
+                "features of the fitted data. The fitted data had {} features "
+                "and the X has {} features."
+                .format(len(self.classes,), n_features)
+            )
+        
+        output = []
+        for i in range(n_features):
+            Xi = X_list[i]
+            classes_i = self.classes[i]
+            binarizer = MultiLabelBinarizer(classes=classes_i)
+            output.append(binarizer.fit_transform(Xi))
+            
+        return np.concatenate(output, axis=1)
+
+    def fit_transform(self, X, y=None):
+        return self.fit(X, y).transform(X, y)
 
 
 def get_feature_columns(dataframe: pd.DataFrame, remove_id_like_columns: bool=False) -> List[str]:
