@@ -14,8 +14,35 @@ FIXED_COLUMN_NAMES = [
 ]
 
 
-def get_feature_columns(dataframe: pd.DataFrame) -> List[str]:
-    return list(sorted(list(set(dataframe.columns) - set(FIXED_COLUMN_NAMES))))
+ICE_CAT_ID_LIKE_COLUMN_NAMES = [
+    'Customs product code (TARIC)',
+    'Master (outer) case GTIN (EAN/UPC)',
+    'Bundled software',
+    'Shipping (inner) case GTIN (EAN/UPC)',
+    'Dimensions (W x D x H) (imperial)',
+    'Dimensions printer compartment (W x D x H)',
+    'Package dimensions (W x D x H)',
+    'Interior dimensions (W x D x H)',
+    'Package dimensions (WxDxH)',
+    'Dimensions (WxDxH)',
+    'Exterior dimensions (WxDxH)',
+    'Weight (imperial)',
+    'Board size (W x D)',
+    'Case or master carton dimensions (W x D x H)',
+    'Pallet GTIN (EAN/UPC)',
+    'Pallet dimensions (W x D x H)',
+    'Pallet dimensions (W x D x H) (imperial)',
+    'Pole dimensions (W x D x H)',
+    'Slot size (LxWxH)',
+]
+
+
+def get_feature_columns(dataframe: pd.DataFrame, remove_id_like_columns: bool=False) -> List[str]:
+    all_cols = set(dataframe.columns)
+    fixed_cols = set(FIXED_COLUMN_NAMES)
+    id_like_cols = set(ICE_CAT_ID_LIKE_COLUMN_NAMES) if remove_id_like_columns else set()
+    disjoint_set = all_cols - fixed_cols - id_like_cols
+    return list(sorted(disjoint_set))
 
 
 def get_unique_value_lengths(dataframe: pd.DataFrame, col_name: str):
@@ -71,7 +98,7 @@ def filter_rows(dataframe: pd.DataFrame, min_count_per_category: int=50):
 
 def filter_columns(dataframe: pd.DataFrame, min_count_per_feature:int=10):
     # Get columns that specify features of the products
-    product_feature_columns = list(dataframe.columns)[26:]
+    product_feature_columns = get_feature_columns(dataframe)
 
     # Find columns that have too few specified values
     n_rows = dataframe.shape[0]
@@ -108,7 +135,11 @@ def filter_columns(dataframe: pd.DataFrame, min_count_per_feature:int=10):
     ]
 
     # Find columns that have enough values
-    product_features_to_use = [col for col in product_feature_columns if col not in excluded_cols]
+    product_features_to_use = [
+        col 
+        for col in product_feature_columns
+        if col not in excluded_cols
+    ]
     
     # Create a copy
     return dataframe[['supplier_name'] + product_features_to_use].copy()
@@ -191,3 +222,38 @@ def find_top_n_categories(dataframe: pd.DataFrame, top_n: int=10):
         .head(top_n)
         .index
     )
+
+
+def get_fill_ratios_for_product_features_per_category(dataframe: pd.DataFrame):
+    # Only consider product features that can be used for comparing distances between products.
+    col_product_features = get_feature_columns(dataframe, remove_id_like_columns=True)
+
+    # Find the number of filled values for each product feature and each product category.
+    df_fill_per_category = dataframe[col_product_features].groupby(dataframe.category_name).count()
+    df_fill_per_category = df_fill_per_category.transpose()
+
+    # For each product feature, sum the number of filled values across categories.
+    df_fill_per_category['total_filled'] = df_fill_per_category.sum(axis=1)
+
+    # Fetch all categories.
+    categories = dataframe.category_name.unique()
+
+    # Prepare the result map
+    category_feature_map = dict()
+
+    for category in categories:
+        # Find number of products in the given category
+        n_rows_for_category = dataframe[dataframe.category_name == category].shape[0]
+
+        # Find valid product features for the given category by filtering out
+        # the product features that do not have any filled value.
+        df_cat_features = df_fill_per_category[df_fill_per_category[category] > 0][category]
+        category_feature_names = df_cat_features.index.tolist()
+        
+        # Compute fill ratio for each product feature in the given category.
+        fill_ratios = (df_fill_per_category[df_fill_per_category[category] > 0][category] / n_rows_for_category).tolist()
+        
+        # Store the data in the map
+        category_feature_map[category] = {k:v for k, v in zip(category_feature_names, fill_ratios)}
+
+    return category_feature_map
