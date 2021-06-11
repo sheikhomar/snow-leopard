@@ -1,6 +1,22 @@
+from typing import List
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+
+FIXED_COLUMN_NAMES = [
+    'id', 'supplier_id', 'supplier_name', 'category_id', 'category_name', 'title',
+    'model_name', 'description_short', 'description_middle', 'description_long',
+    'summary_short', 'summary_long', 'warranty', 'is_limited', 'on_market', 'quality',
+    'url_details', 'url_manual', 'url_pdf', 'created_at', 'updated_at', 'released_on',
+    'end_of_life_on', 'ean', 'n_variants', 'countries'
+]
+
+
+def get_feature_columns(dataframe: pd.DataFrame) -> List[str]:
+    return list(sorted(list(set(dataframe.columns) - set(FIXED_COLUMN_NAMES))))
+
 
 def get_unique_value_lengths(dataframe: pd.DataFrame, col_name: str):
     unique_vals = map(lambda r: str(r), dataframe[col_name].unique())
