@@ -25,6 +25,7 @@ def get_unique_value_lengths(dataframe: pd.DataFrame, col_name: str):
     unique_vals = list(unique_vals)
     return np.array(unique_vals)
 
+
 def inferred_type(dataframe: pd.DataFrame, col_name: str, max_cat_value_count: int=1000) -> np.dtype:
     is_datetime_col = dataframe[col_name].str.match('(\d{2,4}(-|\/|\\|\.| )\d{2}(-|\/|\\|\.| )\d{2,4})+').all()
     if is_datetime_col:
@@ -56,6 +57,7 @@ def inferred_type(dataframe: pd.DataFrame, col_name: str, max_cat_value_count: i
 
     return 'object'
 
+
 def filter_rows(dataframe: pd.DataFrame, min_count_per_category: int=50):
     # Count number of rows per category
     df_count_by_category = dataframe.groupby('category_name').agg({'id': 'count'}).rename(columns={'id': 'n_rows'})
@@ -65,6 +67,7 @@ def filter_rows(dataframe: pd.DataFrame, min_count_per_category: int=50):
 
     # Delete rows with few that N amount of rows per category
     return dataframe[dataframe.category_name.isin(categories)]
+
 
 def filter_columns(dataframe: pd.DataFrame, min_count_per_feature:int=10):
     # Get columns that specify features of the products
@@ -110,6 +113,7 @@ def filter_columns(dataframe: pd.DataFrame, min_count_per_feature:int=10):
     # Create a copy
     return dataframe[['supplier_name'] + product_features_to_use].copy()
 
+
 def detect_and_fix_column_types(dataframe: pd.DataFrame):
     df_cleaned = dataframe.copy()
     # Use proper dtypes
@@ -129,10 +133,12 @@ def detect_and_fix_column_types(dataframe: pd.DataFrame):
         df_cleaned[col] = df_cleaned[col].astype(dtype)
     return df_cleaned
 
+
 def split_train_test(df):
     train = df.sample(frac=.8, random_state=42)
     test = df.loc[~df.index.isin(train.index)]
     return train, test
+
 
 def compute_column_stats(dataframe: pd.DataFrame):
     dmap = {
@@ -167,6 +173,7 @@ def compute_column_stats(dataframe: pd.DataFrame):
 
     return pd.DataFrame(dmap)
 
+
 def create_variance_scree_plot(variance_ratios):
     n_items = len(variance_ratios)
     fig, ax = plt.subplots(figsize=(15, 7))
@@ -174,6 +181,7 @@ def create_variance_scree_plot(variance_ratios):
     ax.bar(np.arange(1, n_items + 1), variance_ratios)
     ax.set_xlabel('Number of Components')
     ax.set_ylabel('Cumulative Explained Variance');
+
 
 def find_top_n_categories(dataframe: pd.DataFrame, top_n: int=10):
     return list(dataframe
