@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from sklearn.preprocessing import OneHotEncoder, MultiLabelBinarizer
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, MultiLabelBinarizer
 
 
 FIXED_COLUMN_NAMES = [
@@ -387,3 +389,44 @@ def prepare_for_preprocessing(dataframe: pd.DataFrame) -> Tuple[pd.DataFrame, Di
                 
     sorted_cols = list(sorted(df.columns.tolist()))
     return df[sorted_cols], feature_type_map
+
+
+def preprocess_dataframe(dataframe: pd.DataFrame) -> np.array:
+    """Preprocesses raw data into numerical features.
+    """
+
+    # Prepare for preprocessing
+    df, feat_by_type = prepare_for_preprocessing(dataframe)
+
+    # Separate different types of features.
+    numeric_features = list(sorted(feat_by_type['float'] + feat_by_type['int32']))
+    categorical_features = feat_by_type['category']
+    multi_categorical_features = feat_by_type['multi-category']
+    binary_features = feat_by_type['binary']
+
+    # Sanity check!
+    all_features = numeric_features + categorical_features + multi_categorical_features + binary_features
+    assert 'category_name' not in all_features, 'Product category variable should not be present!'
+
+    # Convert multi-categorical features to list of values as MultiHotEncoder expects it.
+    for c in multi_categorical_features:
+        df[c] = df[c].astype('str').apply(lambda r: [v.strip() for v in r.split(',')])
+
+    # Create encoders/scalers for different types of features.
+    numeric_transformer = StandardScaler()
+    categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+    multi_categorical_transformer = MultiHotEncoder()
+
+    # Combine all transformers into a preprocessor
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('numerical', numeric_transformer, numeric_features),
+            ('categorical', categorical_transformer, categorical_features),
+            ('multi-categorical', multi_categorical_transformer, multi_categorical_features),
+            ('binary', 'passthrough', binary_features)
+        ]
+    )
+
+    # Preprocess data
+    X = preprocessor.fit_transform(df)
+    return X
