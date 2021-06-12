@@ -175,6 +175,7 @@ def get_product_feature_columns_for_training(dataframe: pd.DataFrame, min_count_
     # Manually exclude columns if they were not caught by the
     # heuristic above.
     excluded_cols += [
+        'category_name',  # This should not be present in the X.
         'Customs product code (TARIC)',
         'Master (outer) case GTIN (EAN/UPC)',
         'Bundled software',
