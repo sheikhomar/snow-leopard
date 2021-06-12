@@ -4,9 +4,10 @@ from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+from sklearn.metrics.pairwise import rbf_kernel, cosine_similarity
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, MultiLabelBinarizer
 
 
@@ -430,3 +431,14 @@ def preprocess_dataframe(dataframe: pd.DataFrame) -> np.array:
     # Preprocess data
     X = preprocessor.fit_transform(df)
     return X
+
+def plot_similarity_heatmap(X: np.array, metric: str='rbf', title: str=None):
+    metrics = {
+        'rbf': rbf_kernel,
+        'cosine': cosine_similarity,
+    }
+    metric_func = metrics[metric]
+    distances = metric_func(X)
+    fig, ax = plt.subplots(figsize=(20, 18))
+    sns.heatmap(distances, cmap="Blues", ax=ax)
+    ax.set_title(title)
