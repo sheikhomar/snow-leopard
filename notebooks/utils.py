@@ -171,15 +171,6 @@ def get_product_feature_columns_for_training(dataframe: pd.DataFrame, min_count_
         n_filled = n_rows - dataframe[col].isna().sum()
         if n_filled < min_count_per_feature:
             excluded_cols.append(col)
-        else:
-            # For categorical attributes apply a heuristic that filters
-            # out product features with low fill/unique ratios
-            dtype = inferred_type(dataframe, col)
-            if dtype == 'category':
-                n_unique = len(dataframe[col].unique())
-                fill_unique_ratio = n_filled / n_unique
-                if fill_unique_ratio < 2.0:
-                    excluded_cols.append(col)
     
     # Manually exclude columns if they were not caught by the
     # heuristic above.
@@ -205,7 +196,7 @@ def get_product_feature_columns_for_training(dataframe: pd.DataFrame, min_count_
         if col not in excluded_cols
     ]
 
-    return ['supplier_name'] + product_features_to_use
+    return product_features_to_use
 
 
 def detect_and_fix_column_types(dataframe: pd.DataFrame):
