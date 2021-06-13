@@ -432,13 +432,15 @@ def preprocess_dataframe(dataframe: pd.DataFrame) -> np.array:
     X = preprocessor.fit_transform(df)
     return X
 
-def plot_similarity_heatmap(X: np.array, metric: str='rbf', title: str=None):
+def plot_similarity_heatmap(X: np.array, metric: str='rbf', normalise: bool=False, title: str=None):
     metrics = {
         'rbf': rbf_kernel,
         'cosine': cosine_similarity,
     }
     metric_func = metrics[metric]
-    distances = metric_func(X)
+    similarity_matrix = metric_func(X)
+    if normalise:
+        similarity_matrix = (similarity_matrix - np.min(similarity_matrix)) / np.ptp(similarity_matrix)
     fig, ax = plt.subplots(figsize=(20, 18))
-    sns.heatmap(distances, cmap="Blues", ax=ax)
+    sns.heatmap(similarity_matrix, cmap="PiYG", ax=ax)
     ax.set_title(title)
