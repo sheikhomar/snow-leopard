@@ -9,6 +9,8 @@ import seaborn as sns
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics.pairwise import rbf_kernel, cosine_similarity
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, MultiLabelBinarizer
+from sklearn.pipeline import Pipeline, FeatureUnion
+from prince import CA
 
 
 FIXED_COLUMN_NAMES = [
@@ -431,6 +433,70 @@ def preprocess_dataframe(dataframe: pd.DataFrame) -> np.array:
     # Preprocess data
     X = preprocessor.fit_transform(df)
     return X
+
+
+def preprocess_dataframe_with_correspondence_analysis(dataframe: pd.DataFrame) -> np.array:
+    """Preprocesses raw data into numerical features.
+    """
+
+    # Prepare for preprocessing
+    df, feat_by_type = prepare_for_preprocessing(dataframe)
+
+    # Separate different types of features.
+    numeric_features = list(sorted(feat_by_type['float'] + feat_by_type['int32']))
+    categorical_features = feat_by_type['category']
+    multi_categorical_features = feat_by_type['multi-category']
+    binary_features = feat_by_type['binary']
+
+    # Sanity check!
+    all_features = numeric_features + categorical_features + multi_categorical_features + binary_features
+    assert 'category_name' not in all_features, 'Product category variable should not be present!'
+
+    # Convert multi-categorical features to list of values as MultiHotEncoder expects it.
+    for c in multi_categorical_features:
+        df[c] = df[c].astype('str').apply(lambda r: [v.strip() for v in r.split(',')])
+
+    # Create encoders/scalers for different types of features.
+    one_hot_encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
+    multihot_encoder = MultiHotEncoder()
+    correspondence_analysis = CA(n_components=20)
+
+    # Convert categorical variables into one-hot encoding.
+    one_hot_transform = ColumnTransformer(
+        transformers=[
+            ('single', one_hot_encoder, categorical_features),
+            ('multi', multihot_encoder, multi_categorical_features),
+        ]
+    )
+
+    # Apply CA on the one-hot encoded categorical variables.
+    categorical_processor = Pipeline(
+        steps=[
+            ('onehot', one_hot_transform),
+            ('ca', correspondence_analysis)
+        ]
+    )
+
+    # Transformer for numerical and binary variables.
+    numerical_processor = ColumnTransformer(
+        transformers=[
+            ('numerical', StandardScaler(), numeric_features),
+            ('binary', 'passthrough', binary_features)
+        ]
+    )
+
+    # Combine all transformers into a preprocessor
+    preprocessor = FeatureUnion(
+        transformer_list=[
+            ('numerical', numerical_processor),
+            ('categorical', categorical_processor),
+        ]
+    )
+
+    # Preprocess data
+    X = preprocessor.fit_transform(df)
+    return X
+
 
 def plot_similarity_heatmap(X: np.array, metric: str='rbf', normalise: bool=False, title: str=None):
     metrics = {

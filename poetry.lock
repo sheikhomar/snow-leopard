@@ -933,6 +933,24 @@ retrying = ">=1.3.3"
 six = "*"
 
 [[package]]
+name = "prince"
+version = "0.7.1"
+description = "Statistical factor analysis in Python"
+category = "main"
+optional = false
+python-versions = ">=3.4.0"
+
+[package.dependencies]
+matplotlib = ">=3.0.2"
+numpy = ">=1.17.1"
+pandas = ">=1.0.3"
+scikit-learn = ">=0.22.1"
+scipy = ">=1.3.0"
+
+[package.extras]
+dev = ["nose (>=1.3.7)", "pytest (>=3.5.1)", "pytest-cov (>=2.6.0)", "fbpca (>=1.0)"]
+
+[[package]]
 name = "prometheus-client"
 version = "0.10.1"
 description = "Python client for the Prometheus monitoring system."
@@ -1382,7 +1400,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "53661a89c1e566e045e9829e09711133ac4e2a564e325ddff0c542158f732618"
+content-hash = "85e8233b6b73d770a65078c5b390999ffc65781d12e9ec0f0548b9037b0775aa"
 
 [metadata.files]
 anyio = [
@@ -1933,6 +1951,10 @@ pillow = [
 plotly = [
     {file = "plotly-4.14.3-py2.py3-none-any.whl", hash = "sha256:d68fc15fcb49f88db27ab3e0c87110943e65fee02a47f33a8590f541b3042461"},
     {file = "plotly-4.14.3.tar.gz", hash = "sha256:7d8aaeed392e82fb8e0e48899f2d3d957b12327f9d38cdd5802bc574a8a39d91"},
+]
+prince = [
+    {file = "prince-0.7.1-py3-none-any.whl", hash = "sha256:70896a815b675521f15e44d0cc7c365a5844a650226fae4a628fcef071c8573a"},
+    {file = "prince-0.7.1.tar.gz", hash = "sha256:b3dadbea7708c9f9b0cfa090d1380f989bcecf709bceb3a2c3c202df40b7f9b0"},
 ]
 prometheus-client = [
     {file = "prometheus_client-0.10.1-py2.py3-none-any.whl", hash = "sha256:030e4f9df5f53db2292eec37c6255957eb76168c6f974e4176c711cf91ed34aa"},
