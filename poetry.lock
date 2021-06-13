@@ -223,6 +223,14 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "fast-pagerank"
+version = "0.0.4"
+description = "A fast PageRank and Personalized PageRank implementation"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "future"
 version = "0.18.2"
 description = "Clean single-source support for Python 3 and 2"
@@ -1374,7 +1382,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "b087c6ad71002c56fd421e6297e2fd9ada951ffc3b76b7607a30559a360df08e"
+content-hash = "53661a89c1e566e045e9829e09711133ac4e2a564e325ddff0c542158f732618"
 
 [metadata.files]
 anyio = [
@@ -1552,6 +1560,10 @@ entrypoints = [
 et-xmlfile = [
     {file = "et_xmlfile-1.1.0-py3-none-any.whl", hash = "sha256:a2ba85d1d6a74ef63837eed693bcb89c3f752169b0e3e7ae5b16ca5e1b3deada"},
     {file = "et_xmlfile-1.1.0.tar.gz", hash = "sha256:8eb9e2bc2f8c97e37a2dc85a09ecdcdec9d8a396530a6d5a33b30b9a92da0c5c"},
+]
+fast-pagerank = [
+    {file = "fast-pagerank-0.0.4.tar.gz", hash = "sha256:ad62ea8ac7298b4e7998c18e4cd960929353ace25c1b64c5003bf37df6161e64"},
+    {file = "fast_pagerank-0.0.4-py3-none-any.whl", hash = "sha256:5d8cf7f5954690d80e7f4b4670606f17ad2b2c1d9aa8feabdc4d4e4242deaae5"},
 ]
 future = [
     {file = "future-0.18.2.tar.gz", hash = "sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d"},
