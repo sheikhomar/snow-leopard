@@ -1,5 +1,6 @@
 from itertools import chain
 from typing import Dict, List, Tuple
+import string
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -193,6 +194,7 @@ def get_product_feature_columns_for_training(dataframe: pd.DataFrame, min_count_
         'Dimensions (WxDxH)',
         'Exterior dimensions (WxDxH)',
         'Weight (imperial)',
+        'supplier_name',
     ]
 
     # Find columns that have enough values
@@ -510,3 +512,43 @@ def plot_similarity_heatmap(X: np.array, metric: str='rbf', normalise: bool=Fals
     fig, ax = plt.subplots(figsize=(20, 18))
     sns.heatmap(similarity_matrix, cmap="PiYG", ax=ax)
     ax.set_title(title)
+
+
+def group_clusters_per_category(dataframe: pd.DataFrame, attr_name: str='cluster'):
+    df = dataframe.groupby([attr_name, 'category_name']).count()[['title']].reset_index()
+    df = df.rename(columns={'title': 'n_rows'})
+    df = df.sort_values([attr_name, 'n_rows'], ascending=[True, False])
+    return df
+
+
+def combined_similar_clusters(dataframe: pd.DataFrame):
+    df = dataframe.copy()
+    df_cluster_counts = group_clusters_per_category(dataframe)
+
+    categories = df_cluster_counts.category_name.unique()
+    clusters = df_cluster_counts.cluster.unique()
+    category_cluster_map = {k: string.ascii_uppercase[i] for i,k in enumerate(categories)}
+
+    for old_cluster in clusters:
+        df_filtered = df_cluster_counts[df_cluster_counts.cluster == old_cluster]
+        
+        if len(df_filtered) == 1:
+            # Find product category
+            cat = df_filtered.iloc[0].category_name
+            
+            # Find new cluster assignment
+            new_cluster_id = category_cluster_map[cat]
+            
+            # Reassign cluster
+            df.loc[(df.cluster == old_cluster) & (df.category_name == cat), 'cluster'] = new_cluster_id
+
+    df['new_label'] = df['cluster']
+    df_cluster_counts = group_clusters_per_category(df)
+    clusters = df_cluster_counts.cluster.unique()
+    for old_cluster in clusters:
+        df_filtered = df_cluster_counts[df_cluster_counts.cluster == old_cluster]
+        cat = df_filtered.iloc[0].category_name
+        new_cluster_id = category_cluster_map[cat]
+        df.loc[(df.cluster == old_cluster), 'new_label'] = new_cluster_id
+
+    return df
