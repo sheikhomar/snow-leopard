@@ -146,3 +146,4 @@ cython_debug/
 # Data
 /data/
 /config/secrets/*.json
+notebooks/dask-worker-space/*
