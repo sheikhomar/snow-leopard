@@ -554,4 +554,12 @@ def combined_similar_clusters(dataframe: pd.DataFrame):
         new_cluster_id = category_cluster_map[cat]
         df.loc[(df.cluster == old_cluster), 'new_label'] = new_cluster_id
 
+    df['pred_category'] = df['new_label']
+    df_cluster_counts = group_clusters_per_category(df, attr_name='new_label')
+    clusters = df_cluster_counts.new_label.unique()
+    for old_cluster in clusters:
+        df_filtered = df_cluster_counts[df_cluster_counts.new_label == old_cluster]
+        pred_cat = df_filtered.iloc[0].category_name
+        df.loc[(df.new_label == old_cluster), 'pred_category'] = pred_cat
+
     return df
