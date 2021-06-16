@@ -321,7 +321,7 @@ def get_fill_ratios_for_product_features_per_category(dataframe: pd.DataFrame):
     return category_feature_map
 
 
-def get_valid_categories_per_product_feature(fill_ratio: Dict[str, Dict[str, float]]):
+def get_valid_categories_per_product_feature(fill_ratio: Dict[str, Dict[str, float]]) -> Dict[str, List[str]]:
     valid_cats_per_feat = dict()
     for category, feats_map in fill_ratio.items():
         for feat in feats_map.keys():
@@ -331,10 +331,13 @@ def get_valid_categories_per_product_feature(fill_ratio: Dict[str, Dict[str, flo
     return valid_cats_per_feat
 
 
-def prepare_for_preprocessing(dataframe: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, List[str]]]:
+def prepare_for_preprocessing(dataframe: pd.DataFrame, valid_cats_per_feat: Dict[str, List[str]]=None) -> Tuple[pd.DataFrame, Dict[str, List[str]]]:
     df = dataframe.copy()
-    fill_ratios = get_fill_ratios_for_product_features_per_category(df)
-    valid_cats_per_feat = get_valid_categories_per_product_feature(fill_ratios)
+
+    if valid_cats_per_feat is None:
+        fill_ratios = get_fill_ratios_for_product_features_per_category(df)
+        valid_cats_per_feat = get_valid_categories_per_product_feature(fill_ratios)
+
     product_feature_columns = get_product_feature_columns_for_training(df)
 
     feature_type_map = {
@@ -396,12 +399,12 @@ def prepare_for_preprocessing(dataframe: pd.DataFrame) -> Tuple[pd.DataFrame, Di
     return df[sorted_cols], feature_type_map
 
 
-def preprocess_dataframe(dataframe: pd.DataFrame) -> np.array:
+def preprocess_dataframe(dataframe: pd.DataFrame, valid_cats_per_feat: Dict[str, List[str]]=None) -> np.array:
     """Preprocesses raw data into numerical features.
     """
 
     # Prepare for preprocessing
-    df, feat_by_type = prepare_for_preprocessing(dataframe)
+    df, feat_by_type = prepare_for_preprocessing(dataframe, valid_cats_per_feat)
 
     # Separate different types of features.
     numeric_features = list(sorted(feat_by_type['float'] + feat_by_type['int32']))
