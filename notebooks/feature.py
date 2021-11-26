@@ -1,3 +1,13 @@
+from dataclasses import dataclass
+from itertools import chain
+from typing import Dict, Generator, List
+
+import numpy as np
+import pandas as pd
+
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, MultiLabelBinarizer
 
 
 ICE_CAT_IRRELEVANT_COLUMN_NAMES = [
@@ -167,7 +177,7 @@ class FeatureCollection:
         self._features.append(
             FeatureInfo(
                 name=FeatureInfo.get_name_for_invalid_feature(name),
-                type="binary",
+                dtype="binary",
                 synthentic=True,
                 proxy_name=name
             )
@@ -178,7 +188,7 @@ class FeatureCollection:
         self._features.append(
             FeatureInfo(
                 name=FeatureInfo.get_name_for_not_available_feature(name),
-                type="binary",
+                dtype="binary",
                 synthentic=True,
                 proxy_name=name
             )
@@ -248,13 +258,14 @@ class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
         )
 
         self._features : FeatureCollection = self._create_feature_collection(
+            dataframe=X,
             feature_names=feature_names
         )
 
-        numeric_features = [f.name for f in self._feature.numeric]
-        categorical_features = [f.name for f in self._feature.categorical]
-        multi_categorical_features = [f.name for f in self._feature.multi_categorical]
-        binary_features = [f.name for f in self._feature.binary]
+        numeric_features = [f.name for f in self._features.numeric]
+        categorical_features = [f.name for f in self._features.categorical]
+        multi_categorical_features = [f.name for f in self._features.multi_categorical]
+        binary_features = [f.name for f in self._features.binary]
 
         # Sanity check!
         all_features = numeric_features + categorical_features + multi_categorical_features + binary_features
@@ -290,7 +301,7 @@ class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
         features = FeatureCollection()
         for feat in set(feature_names):
             dtype = self._infer_type(dataframe, feat)
-            features.add(name=feat, type=dtype, synthentic=False)
+            features.add(name=feat, dtype=dtype)
 
             if dtype in ['float', 'int32']:
                 # We want distinguish between NaN values for which the feature is invalid or N/A.
@@ -349,17 +360,22 @@ class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
 
         # Fill missing values for synthetic features with NaN values
         for feature in self._features.synthetic:
+            feat = feature.name
             dtype = feature.dtype
 
-            if feature.dtype == "binary":
-                df[feat] = df[feat].astype(int)
-                df[feat].fillna(0, inplace=True)
+            if dtype == "binary":
+                if feat in df.columns:
+                    df[feat].fillna(0, inplace=True)
+                    df[feat] = df[feat].astype(int)
+                else:
+                    df[feat] = 0
+                    df[feat] = df[feat].astype(int)
             else:
                 raise ValueError(f"Unable to fill missing values for synthetic features of dtype {dtype}")
 
     def _convert_multi_categorical_feature_values(self, df: pd.DataFrame):
         """Convert multi-categorical features to list of values as MultiHotEncoder expects it."""
-        for f in self._feature.multi_categorical:
+        for f in self._features.multi_categorical:
             df[f.name] = df[f.name].astype('str').apply(lambda r: [v.strip() for v in r.split(',')])
 
     def _clean_data_values(self, df: pd.DataFrame):
@@ -444,7 +460,7 @@ class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
 
         return category_feature_map
 
-    def _get_valid_categories_per_product_feature(fill_ratio: Dict[str, Dict[str, float]]) -> Dict[str, List[str]]:
+    def _get_valid_categories_per_product_feature(self, fill_ratio: Dict[str, Dict[str, float]]) -> Dict[str, List[str]]:
         valid_cats_per_feat = dict()
         for category, feats_map in fill_ratio.items():
             for feat in feats_map.keys():
