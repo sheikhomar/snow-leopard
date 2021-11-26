@@ -7,7 +7,9 @@ import pandas as pd
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, MultiLabelBinarizer
+from sklearn.decomposition import PCA
 
 
 ICE_CAT_IRRELEVANT_COLUMN_NAMES = [
@@ -195,6 +197,11 @@ class FeatureCollection:
         )
 
     @property
+    def all(self) -> Generator[FeatureInfo, None, None]:
+        for feature in self._features:
+            yield feature
+
+    @property
     def non_synthetic(self) -> Generator[FeatureInfo, None, None]:
         for feature in self._features:
             if not feature.synthentic:
@@ -231,12 +238,14 @@ class FeatureCollection:
                 yield feature
 
 class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self) -> None:
+    def __init__(self, output_size: int = 128) -> None:
         super().__init__()
         self._min_count_per_feature = 10
         self._valid_feature_names = []
         self._infer_type = TypeInference(max_cat_value_count=1000).run
         self._features = FeatureCollection()
+        self.output_size = output_size
+        self._pca = PCA(n_components=output_size, svd_solver="full")
 
     def fit(self, X: pd.DataFrame, y=None):
         X = X.copy()
@@ -276,8 +285,8 @@ class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
         categorical_transformer = OneHotEncoder(handle_unknown='ignore')
         multi_categorical_transformer = MultiHotEncoder()
 
-        # Combine all transformers into a preprocessor
-        self._preprocessor = ColumnTransformer(
+        # Combine individual column transformers.
+        feature_extrators = ColumnTransformer(
             transformers=[
                 ('numerical', numeric_transformer, numeric_features),
                 ('categorical', categorical_transformer, categorical_features),
@@ -286,16 +295,28 @@ class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
             ]
         )
 
+        # Combine all preprocessors
+        self._preprocessors = Pipeline([
+            ("feature_extractor", feature_extrators),
+            ("pca", self._pca)
+        ])
+
         # Clean up the values before call the preprocessing them.
         self._clean_data_values(df=X)
 
-        self._preprocessor.fit(X)
+        self._preprocessors.fit(X)
 
         return self
 
     def transform(self, X: pd.DataFrame, y=None):
+        X = X.copy()
+
         # Clean up the values before call the preprocessing them.
         self._clean_data_values(df=X)
+
+        X = self._preprocessors.transform(X=X)
+
+        return X
 
     def _create_feature_collection(self, dataframe: pd.DataFrame, feature_names: List[str]) -> FeatureCollection:
         features = FeatureCollection()
@@ -356,7 +377,7 @@ class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
 
                 # NaN values for numerical features are set to 0.
                 df[feat].fillna(0.0, inplace=True)
-                df[feat] = df[feat].astype(dtype)
+                df[feat] = df[feat].astype(np.float64)
 
         # Fill missing values for synthetic features with NaN values
         for feature in self._features.synthetic:
