@@ -376,8 +376,8 @@ class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
                     df.loc[df[feat].isnull(), feat_na] = 1
 
                 # NaN values for numerical features are set to 0.
+                df[feat] = pd.to_numeric(df[feat], errors="coerce")
                 df[feat].fillna(0.0, inplace=True)
-                df[feat] = df[feat].astype(np.float64)
 
         # Fill missing values for synthetic features with NaN values
         for feature in self._features.synthetic:
