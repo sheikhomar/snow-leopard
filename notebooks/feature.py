@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from itertools import chain
-from typing import Dict, Generator, List
+from typing import Dict, Generator, List, Set
 
 import numpy as np
 import pandas as pd
@@ -88,7 +88,6 @@ class MultiHotEncoder(OneHotEncoder):
 
     def fit_transform(self, X, y=None):
         return self.fit(X, y).transform(X, y)
-
 
 
 class TypeInference:
@@ -236,6 +235,190 @@ class FeatureCollection:
         for feature in self._features:
             if feature.dtype in ["binary"]:
                 yield feature
+
+
+class BasicIceCatFeatureTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self, output_size: int = 128) -> None:
+        super().__init__()
+        self.output_size = output_size
+        self._min_count_per_feature = 10
+        self._pseudo_key_unique_ratio = 0.6
+        self._pca = PCA(n_components=output_size, svd_solver="full")
+        self._infer_type = TypeInference(max_cat_value_count=1000).run
+    
+    def fit(self, X: pd.DataFrame, y=None):
+        X = X.copy()
+
+        valid_column_names = self._get_valid_columns(dataframe=X)
+
+        self._features : FeatureCollection = self._create_feature_collection(
+            dataframe=X,
+            valid_column_names=valid_column_names
+        )
+
+        numeric_features = [f.name for f in self._features.numeric]
+        categorical_features = [f.name for f in self._features.categorical]
+        multi_categorical_features = [f.name for f in self._features.multi_categorical]
+        binary_features = [f.name for f in self._features.binary]
+
+        # Sanity check!
+        all_features = numeric_features + categorical_features + multi_categorical_features + binary_features
+        assert 'category_name' not in all_features, 'Product category variable should not be present!'
+        assert 'category_id' not in all_features, 'Product category variable should not be present!'
+
+        # Create encoders/scalers for different types of features.
+        numeric_transformer = StandardScaler()
+        categorical_transformer = OneHotEncoder(handle_unknown='ignore')
+        multi_categorical_transformer = MultiHotEncoder()
+
+        # Combine individual column transformers.
+        feature_extrators = ColumnTransformer(
+            transformers=[
+                ('numerical', numeric_transformer, numeric_features),
+                ('categorical', categorical_transformer, categorical_features),
+                ('multi-categorical', multi_categorical_transformer, multi_categorical_features),
+                ('binary', 'passthrough', binary_features)
+            ]
+        )
+
+        # Combine all preprocessors
+        self._preprocessors = Pipeline([
+            ("feature_extractor", feature_extrators),
+            ("pca", self._pca)
+        ])
+
+        # Clean up the values before call the preprocessing them.
+        self._clean_data_values(df=X)
+
+        print(f"Number of columns: {X.shape[1]}")
+
+        self._preprocessors.fit(X)
+
+        return self
+
+    def transform(self, X: pd.DataFrame, y=None):
+        X = X.copy()
+
+        # Clean up the values before call the preprocessing them.
+        self._clean_data_values(df=X)
+
+        X = self._preprocessors.transform(X=X)
+
+        return X
+
+    def _get_valid_columns(self, dataframe: pd.DataFrame) -> Set:
+        all_cols = set(dataframe.columns)
+        fixed_cols = set(ICE_CAT_IRRELEVANT_COLUMN_NAMES)
+        id_like_cols = set(ICE_CAT_ID_LIKE_COLUMN_NAMES)
+        valid_column_names = all_cols - fixed_cols - id_like_cols
+        valid_column_names = self._filter_out_sparse_populated_columns(
+            dataframe=dataframe,
+            valid_column_names=valid_column_names
+        )
+        valid_column_names = self._filter_out_pseudo_key_columns(
+            dataframe=dataframe,
+            valid_column_names=valid_column_names
+        )
+        print(f"Number of valid columns: {len(valid_column_names)}")
+        return valid_column_names
+
+    def _filter_out_sparse_populated_columns(self, dataframe: pd.DataFrame, valid_column_names: Set) -> Set:
+        # Find columns that have too few specified values
+        n_rows = dataframe.shape[0]
+        sparsely_populated_cols = set()
+        for col in valid_column_names:
+            n_filled = n_rows - dataframe[col].isna().sum()
+            if n_filled < self._min_count_per_feature:
+                sparsely_populated_cols.add(col)
+
+        print(f"Number of sparsely populated columns: {len(sparsely_populated_cols)}")
+        return valid_column_names - sparsely_populated_cols
+    
+    def _filter_out_pseudo_key_columns(self, dataframe: pd.DataFrame, valid_column_names: Set) -> Set:
+        # Pseudo-key attributes are not suitable to be included in the model
+        # because by definition pseudo-keys are almost unique per row, 
+        # that is, no other non-key attribute can predict them well.
+        # Models can easily overfit to pseudo-key attributes.
+        n_rows = dataframe.shape[0]
+        pseudo_key_cols = set()
+        for col in valid_column_names:
+            n_unique = len(dataframe[col].unique())
+            ratio = n_unique / n_rows
+            if ratio >= self._pseudo_key_unique_ratio:
+                pseudo_key_cols.add(col)
+
+        print("Pseudo-key Columns: ")
+        print(pseudo_key_cols)
+        return valid_column_names - pseudo_key_cols
+
+    def _create_feature_collection(self, dataframe: pd.DataFrame, valid_column_names: Set) -> FeatureCollection:
+        features = FeatureCollection()
+        for feat in valid_column_names:
+            dtype = self._infer_type(dataframe, feat)
+            features.add(name=feat, dtype=dtype)
+
+            if dtype in ['float', 'int32']:
+                # Create an indicator feature for stating when a NaN value in a numeric
+                # field is not available. Notice that a NaN value for a numeric attribute
+                # could mean two things:
+                #  1) the attribute is irrelevant or invalid for a particular product category. 
+                #  2) the attribute is valid but no value is provided.
+                # So when information regarding which attributes is valid for which product
+                # category, it makes sense to distinguish between 1) and 2).
+                features.add_for_not_available(feat)
+        return features
+
+    def _fill_missing_values(self, df: pd.DataFrame):
+        # Fill missing values for non-synthetic features
+        for feature in self._features.non_synthetic:
+            feat = feature.name
+            dtype = feature.dtype
+
+            if dtype in ['category', 'multi-category']:
+                # Convert all NaN values to "(N/A)"
+                df.loc[df[feat].isnull(), feat] = '(N/A)'
+                df[feat] = df[feat].astype('category' if dtype == 'category' else 'str') 
+
+            elif dtype in ['float', 'int32']:
+                if df[feat].isnull().sum() > 0:
+                    # Create a binary feature that tracks when the current numerical
+                    # feature is valid for certain product categories but value is
+                    # not available for a given product.
+                    feat_na = FeatureInfo.get_name_for_not_available_feature(feat)  # Name of the new feature 
+                    df[feat_na] = 0  # Default Value
+                    df[feat_na] = df[feat_na].astype(int)
+
+                    # Mark valid but unassigned values.
+                    df.loc[df[feat].isnull(), feat_na] = 1
+
+                # NaN values for numerical features are set to 0.
+                df[feat] = pd.to_numeric(df[feat], errors="coerce")
+                df[feat].fillna(0.0, inplace=True)
+
+        # Fill missing values for synthetic features with NaN values
+        for feature in self._features.synthetic:
+            feat = feature.name
+            dtype = feature.dtype
+
+            if dtype == "binary":
+                if feat in df.columns:
+                    df[feat].fillna(0, inplace=True)
+                    df[feat] = df[feat].astype(int)
+                else:
+                    df[feat] = 0
+                    df[feat] = df[feat].astype(int)
+            else:
+                raise ValueError(f"Unable to fill missing values for synthetic features of dtype {dtype}")
+
+    def _convert_multi_categorical_feature_values(self, df: pd.DataFrame):
+        """Convert multi-categorical features to list of values as MultiHotEncoder expects it."""
+        for f in self._features.multi_categorical:
+            df[f.name] = df[f.name].astype('str').apply(lambda r: [v.strip() for v in r.split(',')])
+
+    def _clean_data_values(self, df: pd.DataFrame):
+        self._fill_missing_values(df=df)
+        self._convert_multi_categorical_feature_values(df=df)
+
 
 class IceCatFeatureTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, output_size: int = 128) -> None:
