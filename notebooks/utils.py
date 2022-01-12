@@ -11,6 +11,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.metrics.pairwise import rbf_kernel, cosine_similarity
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, MultiLabelBinarizer
 from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.model_selection import train_test_split
 from prince import CA
 
 
@@ -227,10 +228,15 @@ def detect_and_fix_column_types(dataframe: pd.DataFrame):
     return df_cleaned
 
 
-def split_train_test(df):
-    train = df.sample(frac=.8, random_state=42)
-    test = df.loc[~df.index.isin(train.index)]
-    return train, test
+def split_train_test(df_data: pd.DataFrame, test_size: float=0.2):
+    X = list(df_data.index)
+    y = list(df_data.category_id)
+    
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=42, stratify=y
+    )
+    
+    return df_data.loc[X_train], df_data.loc[X_test]
 
 
 def compute_column_stats(dataframe: pd.DataFrame):
