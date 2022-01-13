@@ -290,7 +290,7 @@ class BasicIceCatFeatureTransformer(BaseEstimator, TransformerMixin):
         # Clean up the values before call the preprocessing them.
         self._clean_data_values(df=X)
 
-        print(f"Number of columns: {X.shape[1]}")
+        # print(f"Number of columns: {X.shape[1]}")
 
         self._preprocessors.fit(X)
 
@@ -319,7 +319,7 @@ class BasicIceCatFeatureTransformer(BaseEstimator, TransformerMixin):
             dataframe=dataframe,
             valid_column_names=valid_column_names
         )
-        print(f"Number of valid columns: {len(valid_column_names)}")
+        # print(f"Number of valid columns: {len(valid_column_names)}")
         return valid_column_names
 
     def _filter_out_sparse_populated_columns(self, dataframe: pd.DataFrame, valid_column_names: Set) -> Set:
@@ -331,7 +331,7 @@ class BasicIceCatFeatureTransformer(BaseEstimator, TransformerMixin):
             if n_filled < self._min_count_per_feature:
                 sparsely_populated_cols.add(col)
 
-        print(f"Number of sparsely populated columns: {len(sparsely_populated_cols)}")
+        # print(f"Number of sparsely populated columns: {len(sparsely_populated_cols)}")
         return valid_column_names - sparsely_populated_cols
     
     def _filter_out_pseudo_key_columns(self, dataframe: pd.DataFrame, valid_column_names: Set) -> Set:
@@ -347,8 +347,8 @@ class BasicIceCatFeatureTransformer(BaseEstimator, TransformerMixin):
             if ratio >= self._pseudo_key_unique_ratio:
                 pseudo_key_cols.add(col)
 
-        print("Pseudo-key Columns: ")
-        print(pseudo_key_cols)
+        # print("Pseudo-key Columns: ")
+        # print(pseudo_key_cols)
         return valid_column_names - pseudo_key_cols
 
     def _create_feature_collection(self, dataframe: pd.DataFrame, valid_column_names: Set) -> FeatureCollection:
