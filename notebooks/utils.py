@@ -536,7 +536,7 @@ def combined_similar_clusters(dataframe: pd.DataFrame):
 
     categories = df_cluster_counts.category_name.unique()
     clusters = df_cluster_counts.cluster.unique()
-    category_cluster_map = {k: string.ascii_uppercase[i] for i,k in enumerate(categories)}
+    category_cluster_map = {k: f"C{i}" for i,k in enumerate(categories)}
 
     for old_cluster in clusters:
         df_filtered = df_cluster_counts[df_cluster_counts.cluster == old_cluster]
