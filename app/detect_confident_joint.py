@@ -10,7 +10,7 @@ import click
 import pandas as pd
 import numpy as np
 
-from cleanlab.latent_estimation import compute_confident_joint, estimate_latent
+from cleanlab.pruning import get_noise_indices
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.linear_model import LogisticRegression
@@ -45,11 +45,10 @@ class DetectWithConfidentJoint:
         
         all_mislabelled = []
         for i in range(psx.shape[0]):
-            confident_joint, likely_mislabelled_indices = compute_confident_joint(
+            likely_mislabelled_indices = get_noise_indices(
                 s=y_given,
                 psx=psx[i,:],
-                calibrate=False,
-                return_indices_of_off_diagonals=True
+                sorted_index_method='normalized_margin',
             )
             all_mislabelled.append(likely_mislabelled_indices)
         
