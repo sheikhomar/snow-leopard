@@ -29,6 +29,7 @@ distributed = "^2021.6.0"
 bokeh = "^2.3.2"
 nglpy = "^1.1.2"
 umap-learn = "^0.5.2"
+cleanlab = "^1.0"
 
 [tool.poetry.dev-dependencies]
 
