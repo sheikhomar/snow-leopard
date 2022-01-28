@@ -113,17 +113,21 @@ class Evaluator:
         self._output_dir.mkdir(exist_ok=True, parents=True)
         results = {
             "algorithm_name": self._algorithm_name,
-            "data": {
-                "path": self._data_path,
-                "size": data_set.size,
-                "class_names": list(data_set.class_names),
-            },
+            "algorithm_params": detector.get_params(),
             "start_time": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
             "end_time": end_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
             "scores": [{
                 "iteration": iteration,
                 **scores
-            }]
+            }],
+            "data": {
+                "path": self._data_path,
+                "size": data_set.size,
+                "class_names": list(data_set.class_names),
+            },
+            "known_mislabelled_indices": list(known_mislabelled_indices),
+            "detected_mislabelled_indices": list(detected_mislabelled_indices),
+            
         }
         iteration_id = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         with open(self._output_dir / f"results-iter{iteration}-{iteration_id}.json", "w") as fp:

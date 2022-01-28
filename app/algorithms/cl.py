@@ -1,6 +1,6 @@
 import warnings
 
-from typing import List
+from typing import List, Dict
 
 import numpy as np
 
@@ -36,6 +36,12 @@ class CleanLabDetector(Algorithm):
         # Find the indices of the samples that are mislabelled in every iteration
         mislabelled_multiple_iterations = list(set.intersection(*map(set, all_mislabelled)))
         return mislabelled_multiple_iterations
+
+    def get_params(self) -> Dict[str, object]:
+        return {
+            "n_folds": self._n_folds,
+            "n_repetitions": self._n_repetitions,
+        }
 
     def _create_learning_algorithm(self):
         return LogisticRegression(max_iter=1000)
