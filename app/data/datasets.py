@@ -39,6 +39,11 @@ class DataSet(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def class_names(self) -> List[str]:
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
     def label_attribute(self) -> str:
         """The name for the label attribute."""
         raise NotImplementedError
@@ -95,6 +100,10 @@ class IceCatOfficeDataSet(DataSet):
     @property
     def n_classes(self) -> int:
         return self._label_encoder.classes_.size
+
+    @property
+    def class_names(self) -> List[str]:
+        return self._label_encoder.classes_
 
     @property
     def y_given(self) -> str:
