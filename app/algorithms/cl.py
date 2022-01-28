@@ -38,16 +38,11 @@ class CleanLabDetector(Algorithm):
         # return GaussianProcessClassifier(kernel=1*RBF(1.0))
 
     def _compute_out_of_sample_predicted_probabilities(self, data_set: DataSet):
-        print(f"Number of classes: {data_set.n_classes}")
         pred_probas = np.zeros(shape=(data_set.size, data_set.n_classes))
         for split in data_set.split(n_splits=self._n_folds):
             model = self._create_learning_algorithm()
             model.fit(split.X_train, split.y_train)
             y_pred_proba = model.predict_proba(split.X_test)
-
-            print(f"Number of classes in the train set: {np.unique(split.y_train).shape}")
-            print(f"Number of classes in the test set: {np.unique(split.y_test).shape}")
-            
             pred_probas[split.test_indices] = y_pred_proba
             if self._progress_bar:
                 self._progress_bar.update()
