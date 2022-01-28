@@ -1,3 +1,5 @@
+import warnings
+
 from typing import List
 
 import numpy as np
@@ -11,7 +13,7 @@ from app.data.datasets import DataSet
 
 
 class CleanLabDetector(Algorithm):
-    def __init__(self, *, n_folds: int = 3, n_repetitions: int = 5, verbose: bool = True) -> None:
+    def __init__(self, *, n_folds: int = 3, n_repetitions: int = 10, verbose: bool = True) -> None:
         super().__init__()
         self._n_folds = n_folds
         self._n_repetitions = n_repetitions
@@ -21,7 +23,9 @@ class CleanLabDetector(Algorithm):
     def run(self, data_set: DataSet) -> List[int]:
         all_mislabelled = []
         for i in range(self._n_repetitions):
-            psx = self._compute_out_of_sample_predicted_probabilities(data_set=data_set)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", module="sklearn.preprocessing._label")
+                psx = self._compute_out_of_sample_predicted_probabilities(data_set=data_set)
             likely_mislabelled_indices = get_noise_indices(
                 s=data_set.y_given,
                 psx=psx,

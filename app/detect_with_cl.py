@@ -1,5 +1,3 @@
-import warnings
-
 import click
 
 from app.algorithms.cl import CleanLabDetector
@@ -18,9 +16,7 @@ class DetectWithConfidentJoint:
 
         # Detect mislabelled samples
         detector = CleanLabDetector(n_folds=3, n_repetitions=self._n_repetitions)
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", module="sklearn.preprocessing._label")
-            mislabelled_indices = detector.run(data_set=data_set)
+        mislabelled_indices = detector.run(data_set=data_set)
 
         # Output samples that are most likely mislabelled
         df_mislabelled = data_set.get_raw_data_by_indices(mislabelled_indices).copy()
