@@ -76,7 +76,7 @@ class IceCatOfficeDataSet(DataSet):
         # Encode labels
         self._label_encoder = LabelEncoder()
         self._label_encoder.fit(self._df_data[self.class_name])
-        self._y_given = self._label_encoder.transform(df_data[self.class_name])
+        self._y_given = self._label_encoder.transform(self._df_data[self.class_name])
     
     @property
     def class_name(self) -> str:
