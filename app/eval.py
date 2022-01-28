@@ -134,6 +134,8 @@ class Evaluator:
             json.dump(results, fp, indent=2)
         shutil.copy(self._noise_path, self._output_dir / self._noise_path.name)
 
+        np.savez_compressed(self._output_dir / "noise-matrix.npz", noise_matrix=noise_matrix)
+
     def _compute_scores(
             self,
             data_set_size: int,
