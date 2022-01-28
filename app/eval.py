@@ -1,14 +1,16 @@
-import json
 
+import json, shutil
+
+from datetime import datetime
 from importlib import import_module
-from typing import List
+from pathlib import Path
+from typing import Dict, List
 
 import click
 import pandas as pd
 import numpy as np
 
 from cleanlab.noise_generation import noise_matrix_is_valid
-from tqdm import tqdm
 
 from app.algorithms import Algorithm
 from app.data.datasets import DataSet, get_dataset
@@ -67,14 +69,24 @@ def noise_elimination_precision_score(
 
 
 class Evaluator:
-    def __init__(self, *, algorithm_name: str, data_path: str, noise_path: str, n_repetitions: int, output_path: str) -> None:
+    def __init__(self, *, algorithm_name: str, data_path: str, noise_path: str, n_repetitions: int, output_dir: str) -> None:
         self._algorithm_name = algorithm_name
         self._data_path = data_path
-        self._noise_path = noise_path
+        self._noise_path = Path(noise_path)
         self._n_repetitions = n_repetitions
-        self._output_path = output_path
+        self._output_dir = Path(output_dir)
+        if self._output_dir.name != self._algorithm_name:
+            self._output_dir = self._output_dir / self._algorithm_name
+        experiment_no = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self._output_dir = self._output_dir / experiment_no
 
     def run(self) -> None:
+        for i in range(self._n_repetitions):
+            self.run_iteration(i)
+
+    def run_iteration(self, iteration: int) -> None:
+        start_time = datetime.now()
+
         # Load label noise detection algorithm.
         detector = self._load_algorithm()
 
@@ -90,7 +102,54 @@ class Evaluator:
         # Run detection algorithm
         detected_mislabelled_indices = detector.run(data_set=data_set)
 
+        scores = self._compute_scores(
+            data_set_size=data_set.size,
+            known_mislabelled_indices=known_mislabelled_indices,
+            detected_mislabelled_indices=detected_mislabelled_indices,
+        )
 
+        end_time = datetime.now()
+
+        self._output_dir.mkdir(exist_ok=True, parents=True)
+        results = {
+            "algorithm_name": self._algorithm_name,
+            "data": {
+                "path": self._data_path,
+                "size": data_set.size,
+                "class_names": list(data_set.class_names),
+            },
+            "start_time": start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "end_time": end_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "scores": [{
+                "iteration": iteration,
+                **scores
+            }]
+        }
+        iteration_id = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        with open(self._output_dir / f"results-iter{iteration}-{iteration_id}.json", "w") as fp:
+            json.dump(results, fp, indent=2)
+        shutil.copy(self._noise_path, self._output_dir / self._noise_path.name)
+
+    def _compute_scores(
+            self,
+            data_set_size: int,
+            known_mislabelled_indices: List[int],
+            detected_mislabelled_indices: List[int]
+        ) -> Dict[str, object]:
+        scorers = {
+            "type_1_error_rate": type_1_error_rate,
+            "type_2_error_rate": type_2_error_rate,
+            "noise_elimination_precision_score": noise_elimination_precision_score,
+        }
+        scores = dict()
+        for name, scorer_fn in scorers.items():
+            score = scorer_fn(
+                data_set_size=data_set_size,
+                known_mislabelled_indices=known_mislabelled_indices,
+                detected_mislabelled_indices=detected_mislabelled_indices,
+            )
+            scores[name] = score
+        return scores
 
     def _load_algorithm(self) -> Algorithm:
         try:
@@ -170,7 +229,7 @@ class Evaluator:
 )
 @click.option(
     "-o",
-    "--output-path",
+    "--output-dir",
     type=click.STRING,
     required=True,
 )
@@ -179,14 +238,14 @@ def main(
     input_path: str,
     noise_path: str,
     n_repetitions: int,
-    output_path: str,
+    output_dir: str,
 ):
     Evaluator(
         algorithm_name=algorithm_name,
         data_path=input_path,
         noise_path=noise_path,
         n_repetitions=n_repetitions,
-        output_path=output_path,
+        output_dir=output_dir,
     ).run()
 
 
