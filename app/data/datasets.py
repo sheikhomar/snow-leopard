@@ -35,10 +35,11 @@ class DataSet(abc.ABC):
     @abc.abstractmethod
     def n_classes(self) -> int:
         raise NotImplementedError
-    
+
     @property
     @abc.abstractmethod
-    def class_name(self) -> str:
+    def label_attribute(self) -> str:
+        """The name for the label attribute."""
         raise NotImplementedError
 
     @property
@@ -69,17 +70,17 @@ class IceCatOfficeDataSet(DataSet):
         df_data = pd.read_csv(self._file_path, dtype=str, index_col=0)
 
         # Filter samples from small categories
-        category_counts = df_data[self.class_name].value_counts()
+        category_counts = df_data[self.label_attribute].value_counts()
         large_enough_categories = category_counts[category_counts >= min_num_samples_per_category].index.tolist()
         self._df_data = df_data[df_data.category_name.isin(large_enough_categories)]
 
         # Encode labels
         self._label_encoder = LabelEncoder()
-        self._label_encoder.fit(self._df_data[self.class_name])
-        self._y_given = self._label_encoder.transform(self._df_data[self.class_name])
+        self._label_encoder.fit(self._df_data[self.label_attribute])
+        self._y_given = self._label_encoder.transform(self._df_data[self.label_attribute])
     
     @property
-    def class_name(self) -> str:
+    def label_attribute(self) -> str:
         return "category_name"
 
     @property
@@ -89,10 +90,6 @@ class IceCatOfficeDataSet(DataSet):
     @property
     def n_classes(self) -> int:
         return self._label_encoder.classes_.size
-
-    @property
-    def class_name(self) -> str:
-        return "category_name"
 
     @property
     def y_given(self) -> str:
@@ -107,7 +104,7 @@ class IceCatOfficeDataSet(DataSet):
     def split(self, n_splits: int, shuffle: bool = True, random_state=None):
         skf = StratifiedKFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
         X = self._df_data
-        y = self._df_data[self.class_name]
+        y = self._df_data[self.label_attribute]
         for fold, (train_index, test_index) in enumerate(skf.split(X=X, y=y)):
             df_train = self._df_data.iloc[train_index]
             df_test = self._df_data.iloc[test_index]
@@ -117,8 +114,8 @@ class IceCatOfficeDataSet(DataSet):
 
             X_train = feateure_transformer.transform(df_train)
             X_test = feateure_transformer.transform(df_test)
-            y_train = self._label_encoder.transform(df_train[self.class_name])
-            y_test = self._label_encoder.transform(df_test[self.class_name])
+            y_train = self._label_encoder.transform(df_train[self.label_attribute])
+            y_test = self._label_encoder.transform(df_test[self.label_attribute])
 
             yield DataSplit(
                 fold=fold,
