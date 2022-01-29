@@ -1,0 +1,11 @@
+{
+    "type": "fixed",
+    "transitions": [
+        {
+            "from": "Folders",
+            "to": "Binding Covers",
+            "symmetric": true,
+            "rate": 0.4
+        }
+    ]
+}
