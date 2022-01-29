@@ -125,8 +125,8 @@ class Evaluator:
                 "size": data_set.size,
                 "class_names": list(data_set.class_names),
             },
-            "known_mislabelled_indices": list(known_mislabelled_indices),
-            "detected_mislabelled_indices": list(detected_mislabelled_indices),
+            "known_mislabelled_indices": [int(i) for i in known_mislabelled_indices],
+            "detected_mislabelled_indices": [int(i) for i in detected_mislabelled_indices],
             
         }
         iteration_id = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
