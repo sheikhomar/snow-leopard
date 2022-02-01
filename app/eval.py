@@ -48,7 +48,10 @@ def type_2_error_rate(
         for index in known_mislabelled_indices
         if index not in detected_mislabelled_indices
     ]
-    er2 = len(type_2_indices) / len(known_mislabelled_indices)
+    if len(known_mislabelled_indices) > 0:
+        er2 = len(type_2_indices) / len(known_mislabelled_indices)
+    else:
+        er2 = 0.0
     return er2
 
 
