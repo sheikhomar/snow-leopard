@@ -1,0 +1,12 @@
+{
+  "algorithm_name": "cl",
+  "data_path": "data/ice-cat-office-products.csv.gz",
+  "scores": [
+    {
+      "iteration": 1,
+      "type_1_error_rate": 0.016673054810272134,
+      "type_2_error_rate": 0.13253012048192772,
+      "noise_elimination_precision_score": 0.4528301886792453
+    }
+  ]
+}
